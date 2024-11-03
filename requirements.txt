@@ -1,0 +1,12 @@
+Flask==3.0.3
+langchain
+langchain_chroma
+langchain_community
+langchain_core
+langchain_openai
+langchain_text_splitters
+spotipy
+requests
+numpy
+scipy
+flask

@@ -1,0 +1,10 @@
+#!/bin/bash
+# Start the Flask server
+
+# Stop on errors, print commands
+set -Eeuo pipefail
+set -x
+
+# Run the Flask development server
+echo "+ flask --app TheVibeAi --debug run --host 0.0.0.0 --port 8000"
+flask --app TheVibeAi --debug run --host 0.0.0.0 --port 8000
