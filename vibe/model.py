@@ -1,5 +1,5 @@
 """VibeAI model (database) API."""
-import app
+from vibe import app
 from flask import g, current_app
 
 
@@ -11,7 +11,7 @@ def get_db():
     #TODO
 
     
-@app.vibe.teardown_appcontext
+@app.teardown_appcontext
 def close_db(error):
     """Close the connection at the end of a request."""
     #TODO
