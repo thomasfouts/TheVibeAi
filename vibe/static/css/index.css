@@ -68,7 +68,7 @@ button:hover {
     position: fixed;
     flex-direction: column;
     display: flex;
-    overflow: hidden;
+    overflow-y: auto;
     width: 80%;
     height: 70%;
     top: 20%;

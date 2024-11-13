@@ -15,10 +15,10 @@
      <div class="main-page">
       <h1 id="catchphrase">Catch a Vibe!</h1>
 
-      {% if not session.logged_in %}
+      {% if session.logged_in %}
       <div class="spotify-login">
         <form action="{{ url_for('login') }}" method="POST">
-          <h2>Sign in to Spotify</h2>
+          <h2>Login to Spotify</h2>
           <label for="uname"><b> Account Email</b></label>
           <input type="text" placeholder="Enter Email" name="username" required>
       
@@ -30,20 +30,22 @@
       </div>
       {% endif %}
 
+
+
       <div class="message-history">
-          <div class="message">
-            <img src="static/assets/circle.png" alt="circle" />
-            <div>Give me some blah blah blah blah</div>
-          </div>
 
+          {% for message in session.  messages %}
           <div class="message">
-            <img src="static/assets/circle.png" alt="circle" />
-            <div>Give me some more blah blah blah blah</div>
+            <img src="static/assets/circle.png" alt="circle"/>
+            <div>{{ message }}</div>
           </div>
-
-          <div class="input-area">
-            <input type="text" id="userInput" placeholder="Type your message here..." />
-            <button onclick="sendMessage()">Send</button>
+          {% endfor %}
+          <div class = "input-area">
+          <form action="{{ url_for('user_input') }}" method="POST">
+            <input type="text" name="userinput" placeholder="Type your message here..." />
+        
+            <button type="submit">Send the vibe</button>
+          </form>
           </div>
       </div>
 

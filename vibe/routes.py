@@ -1,7 +1,7 @@
 """VibeAI flask routes"""
 import flask
 from vibe import app, utils
-from flask import request
+from flask import request, session
 import uuid
 import hashlib
 
@@ -9,39 +9,24 @@ import hashlib
 @app.route('/')
 def show_index():
     """Return the index page."""
+    messages = session.get('messages', [])
+    print(messages)
     return flask.render_template("index.html")
 
-@app.route('/create_account_page')
-def create_account_page():
-    """Return Registration page"""
-    #TODO
-    if 'username' in flask.session:
-        return flask.redirect(flask.url_for('edit_account'))
-    return flask.render_template("create_account.html")  # Assumes a registration page
 
-@app.route('/join_friend')
-def join_friend():
+@app.route('/user_input', methods=['POST'])
+def user_input():
+
+    message_body = flask.request.form['userinput']
+
+    if 'messages' not in flask.session:
+        flask.session['messages'] = []
+
+    session['messages'].append(message_body)
+    session.modified = True
     
-    if 'username' in flask.session:
-        return flask.redirect(flask.url_for('edit_account'))
-    return flask.render_template("join_friend.html")  # Assumes a registration page
-    
+    return flask.redirect(flask.url_for('show_index'))
 
-
-@app.route('/create_account', methods=['POST'])
-def create_account():
-    """Handle new user registration"""
-    username = flask.request.form['username']
-    password = flask.request.form['password']
-    email = flask.request.form['email']
-    password_hash = utils.hash_password(password)
-    #spotify_authentication = ____
-    #authenticare spotify
-    #insert into database
-    flask.session['username'] = username
-
-    #TODO: Create session, authorize spotify
-    return
 
 @app.route('/auth/')
 def auth():
@@ -49,55 +34,6 @@ def auth():
     if "username" not in flask.session:
         flask.abort(403)
     return '', 200
-
-#FIX  
-@app.route('/forgot_password', methods=['POST'])
-def forgot_password():
-    """Send email to with code to update password"""
-    email = request.form.get('email')
-    # Check if the email exists in the database
-    user = utils.find_user_by_email(email)  # This function should query the database for the user by email
-    if not user:
-        flask.flash("This email is not registered.", "error")
-        return flask.redirect(flask.url_for('forgot_password_page'))
-
-    # Generate a password reset token (e.g., a secure random token or UUID)
-    reset_token = utils.generate_reset_token(email)
-    
-    # Save the reset token in the database or cache with an expiration time
-    utils.save_reset_token(email, reset_token)  # Implement this function based on your database setup
-
-    # Send an email with the reset link (use a real email-sending library in production)
-    reset_link = flask.url_for('reset_password', token=reset_token, _external=True)
-    utils.send_reset_email(email, reset_link)  # Implement an email-sending function to send the link
-
-    # Inform the user to check their email
-    flask.flash("A password reset link has been sent to your email.", "info")
-    return flask.redirect(flask.url_for('show_index'))
-
-@app.route('/reset_password/<token>', methods=['POST'])
-def reset_password(token):
-    """Allow the user to reset their password via a reset token."""
-    if request.method == 'POST':
-        # Get the new password from the form
-        new_password = request.form.get('password')
-        # Verify the token, retrieve the user's email from it, and update their password
-        email = utils.verify_reset_token(token)  # Implement this function to validate the token and retrieve the associated email
-        if not email:
-            flask.flash("The reset link is invalid or has expired.", "error")
-            return flask.redirect(flask.url_for('forgot_password_page'))
-        
-        # Hash the new password and save it to the database
-        new_password_hash = utils.hash_password(new_password)
-        utils.update_user_password(email, new_password_hash)  # Implement this to update the user's password in the database
-        
-        flask.flash("Your password has been reset. Please log in.", "success")
-        return flask.redirect(flask.url_for('login_page'))
-
-@app.route('/forgot_password_page', methods=['GET'])
-def forgot_password_page():
-    """Return the forgot password page."""
-    return flask.render_template('landing.html')
 
 
 @app.route('/catch_vibe')
@@ -129,46 +65,4 @@ def generate_playlist():
     playlist = flask.session["dj"].generate_playlist(preferences)
     #TODO: Do something with playlist, keep track of current
 
-@app.route("/transition_songs", methods=["POST"])
-def transition_songs():
-    """Provide new preferences"""
-    #TODO
-    return
 
-@app.route("/end_vibe", methods=["POST"])
-def end():
-    """End vibe"""
-    #TODO
-    return
-
-@app.route("/skip", methods=["POST"])
-def skip():
-    """Vote to skip"""
-    #TODO
-    return
-
-@app.route("/find_playlist", methods=["POST"])
-def find_playlist():
-    """Retrieve a previous playlist"""
-    #TODO
-    return
-
-@app.route('/login', methods=['POST'])
-def login():
-    connection = "FIXME"
-    username = flask.request.form['username']
-    password = flask.request.form['password']
-    if not username or not password:
-        flask.flash("Username and password are required.", "error")
-        return flask.redirect(request.url)
-    #user = find from database
-    #password_hash = user['password']
-
-    #if not verify_password(password, password_hash):
-        #flask.abort(403)
-    # flask.session['username'] = username
-    # flask.session['dj'] = playlist.Playlist()
-    
-    #TODO
-    #Verify Password and create session, redirect to options page
-    return flask.render_template('landing.html')
