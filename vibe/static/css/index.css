@@ -4,7 +4,7 @@ body {
     display: flex;
     /* justify-content: center;
     align-items: center; */
-    background-image: url('../src/login.png');
+    background-image: url('../assets/purplegradient.png');
     background-size: cover;
     background-position: center;
 }
@@ -13,7 +13,7 @@ body {
     text-align: center;
     margin: 0; 
     position: absolute; 
-    top: 20%; 
+    top: 10%; 
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 100px;
@@ -22,44 +22,91 @@ body {
 
 /* Full-width input fields */
 input[type=text], input[type=password] {
-    width: 100%;
+    text-align: center;
+    width: 80%;
     padding: 12px 20px;
     margin: 8px 0;
     display: inline-block;
     border: 1px solid #ccc;
     box-sizing: border-box;
-  }
+}
   
-  button {
+button {
     background-color: #04AA6D;
     color: white;
     padding: 14px 20px;
     margin: 8px 0;
     border: none;
     cursor: pointer;
-    width: 100%;
-  }
+    width: 80%;
+}
   
-  button:hover {
+button:hover {
     opacity: 0.8;
-  }
-
-.container {
-    position: fixed; 
-    margin-top: 20%;
-    left: 50%; /* Move to the center horizontally */
-    top: 50%; /* Move to the center vertically */
-    transform: translate(-50%, -50%); /* Offset by half of its size */
-    width: 20%; 
-    height: 100%; 
-    overflow: auto; 
-    padding-top: 60px;
 }
 
-#forgot {
+.spotify-login {
+    text-align: center;
+    color: white; 
+    border: white;
+    border-radius: 2px;
+    border-style: solid;
+    background: url('../assets/chat.png');
+    background-size: cover;
     position: fixed; 
-    margin-top: 5%;
-    left: 50%; /* Move to the center horizontally */
-    top: 50%; /* Move to the center vertically */
+    margin-top: 15%;
+    right: 0%; 
     transform: translate(-50%, -50%); /* Offset by half of its size */
+    width: 20%; 
+    height: 38%; 
+    overflow: auto; 
+    padding-top: 20px;
+    z-index: 10;
+}
+
+.message-history {
+    position: fixed;
+    flex-direction: column;
+    display: flex;
+    overflow: hidden;
+    width: 80%;
+    height: 70%;
+    top: 20%;
+    left: 10%;
+    border-style: solid;
+    border-color: white;
+    border-radius: 5px;
+    background: url('../assets/leaves.png');
+    background-size: contain;
+    align-items: center;
+    padding-top: 10px;
+    padding-inline: 10px;
+    padding-bottom: 10px;
+    gap: 10px;
+}
+
+.message {
+  position: relative;
+  height: 50px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  text-align: center;
+  align-items: center;
+  border-style: solid;
+  border-color: white;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.message img {
+  height: 100%;
+  border-radius: 50%;
+}
+
+.input-area {
+  position: relative;
+  width: 100%;
+  align-items: center;
+  text-align: center;
 }

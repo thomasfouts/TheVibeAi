@@ -8,28 +8,43 @@
       <!-- JS -->
     <script src='scripts/page.js'></script>
     <!-- CSS -->
-    <link rel="stylesheet" type="text/css" href="style/index.css">
+    <link rel="stylesheet" type="text/css" href="static/css/index.css">
   </head>
   <body>
-    <!-- Login Page -->
-     <div class="login-page">
+    <!-- Main page -->
+     <div class="main-page">
       <h1 id="catchphrase">Catch a Vibe!</h1>
-      <div class="container">
+
+      {% if not session.logged_in %}
+      <div class="spotify-login">
         <form action="{{ url_for('login') }}" method="POST">
-          <label for="uname"><b>Username</b></label>
+          <h2>Sign in to Spotify</h2>
+          <label for="uname"><b> Account Email</b></label>
           <input type="text" placeholder="Enter Email" name="username" required>
       
           <label for="password"><b>Password</b></label>
           <input type="password" placeholder="Enter Password" name="password" required>
       
           <button type="submit">Sign in</button>
-          <label>
-            <input type="checkbox" checked="checked" name="remember"> Remember me
-          </label>
         </form>
-        
-        <p><a href="{{ url_for('forgot_password') }}">Forgot password?</a></p>
-        <p><a href="{{ url_for('join_friend') }}">Joining a friend and don't want to make an account</a></p>
+      </div>
+      {% endif %}
+
+      <div class="message-history">
+          <div class="message">
+            <img src="static/assets/circle.png" alt="circle" />
+            <div>Give me some blah blah blah blah</div>
+          </div>
+
+          <div class="message">
+            <img src="static/assets/circle.png" alt="circle" />
+            <div>Give me some more blah blah blah blah</div>
+          </div>
+
+          <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message here..." />
+            <button onclick="sendMessage()">Send</button>
+          </div>
       </div>
 
      </div>
