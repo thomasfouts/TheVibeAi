@@ -1,7 +1,7 @@
 import json
 
 class SongManager:
-    def __init__(self, sp, artist_top_tracks_file='data/artisttoptracks.js'):
+    def __init__(self, sp, artist_top_tracks_file='server/data/artisttoptracks.js'):
         self.artist_top_tracks_file = artist_top_tracks_file
         self.sp = sp
         self.artist_top_tracks = {}
