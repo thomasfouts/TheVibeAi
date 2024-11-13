@@ -64,5 +64,3 @@ def generate_playlist():
     preferences = flask.request.form['preferences']
     playlist = flask.session["dj"].generate_playlist(preferences)
     #TODO: Do something with playlist, keep track of current
-
-
