@@ -1,31 +1,43 @@
 // https://github.com/kevin51jiang/react-spotify-auth
-import React from 'react';
-import { SpotifyAuth, Scopes } from 'react-spotify-auth';
-import 'react-spotify-auth/dist/index.css'; // CSS for the login button
-import Cookies from 'universal-cookie';
 
-const cookies = new Cookies();
+import React, { useState } from 'react';
+import { SpotifyAuth } from 'react-spotify-auth';
+import 'react-spotify-auth/dist/index.css'; // Import CSS for the login button
+import './App.css'; // Import your custom CSS if needed
 
-const App = () => {
-  const token = cookies.get('spotifyAuthToken');
+const clientId = '888537acce5947688ead39862ef45b7d';
+const redirectUri = 'http://localhost:8000';
+const scopes = ['user-read-currently-playing', 'user-read-playback-state'];
+
+function App() {
+  const [token, setToken] = useState(null);
 
   return (
-    <div>
-      {token ? (
-        <div>
-          <h1>You're authenticated!</h1>
-          {/* Use the token to fetch data from Spotify's Web API */}
-        </div>
-      ) : (
-        <SpotifyAuth
-          redirectUri="http://localhost:3000/callback"
-          clientID="888537acce5947688ead39862ef45b7d"
-          scopes={[Scopes.userReadPrivate, Scopes.userReadEmail]} // Replace with your desired scopes
-          onAccessToken={(accessToken) => console.log('Access Token:', accessToken)}
-        />
-      )}
+    <div className="App">
+      <header className="App-header">
+        {!token ? (
+          <>
+            <h1>Spotify Web Player</h1>
+            <h2>Login to view your currently playing songs</h2>
+            <SpotifyAuth
+              redirectUri={redirectUri}
+              clientID={clientId}
+              scopes={scopes}
+              onAccessToken={(token) => {
+                setToken(token);
+                window.localStorage.setItem('spotifyAuthToken', token);
+              }}
+            />
+          </>
+        ) : (
+          <div>
+            <h1>Welcome!</h1>
+            <p>Your Spotify token is: {token}</p>
+          </div>
+        )}
+      </header>
     </div>
   );
-};
+}
 
 export default App;
