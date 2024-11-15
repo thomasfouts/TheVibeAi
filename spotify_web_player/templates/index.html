@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Web Player</title>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body onload="console.log('HTML loaded correctly.')">
+    <div id="player-container">
+        <h1>Spotify Web Player</h1>
+        {% if token %}
+            <div id="play-button" onclick="togglePlay()">Play / Pause</div>
+            <input type="hidden" id="spotify-token" value="{{ token }}">
+            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+            <p id="status-message">Initializing Spotify Player...</p>
+        {% else %}
+            <a href="{{ url_for('login') }}" class="login-button">Login to Spotify</a>
+        {% endif %}
+    </div>
+    <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+</body>
+</html>
