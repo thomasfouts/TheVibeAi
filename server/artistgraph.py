@@ -1,18 +1,27 @@
 import json
 import networkx as nx
 from collections import deque
+import spotipy
 
 class ArtistGraph:
-    def __init__(self, nodes_file, edges_file, sp):
+    def __init__(self, nodes_file, edges_file, access_token=None):
         self.user_artist_hist = {}
-        self.get_user_artists(sp)
+       
+        self.sp = None
+        if access_token:
+            # Authenticate using the user's access token
+            self.sp = spotipy.Spotify(auth=access_token)
+        else:
+            raise ValueError("Access token must be provided")
+
+        self.get_user_artists()
         
         self.graph = nx.Graph() 
         self.load_graph(nodes_file, edges_file)
         
-    def get_user_artists(self, sp):
+    def get_user_artists(self):
         try:
-            results = sp.current_user_saved_tracks()
+            results = self.sp.current_user_saved_tracks()
         except:
             return
             
@@ -42,7 +51,7 @@ class ArtistGraph:
                 except json.JSONDecodeError:
                     failed_artists.append(line.strip())
 
-        print(f'failed to load {len(failed_artists)} artists')
+        #print(f'failed to load {len(failed_artists)} artists')
 
         # Load edges
         popular_diffs = []
@@ -66,7 +75,7 @@ class ArtistGraph:
                 except json.JSONDecodeError:
                     continue
                     
-        print(sum(popular_diffs) / len(popular_diffs))
+        #print(sum(popular_diffs) / len(popular_diffs))
 
     def bfs_to_nearest_connected_artist(self, artist, sp):
         visited = set()
@@ -75,7 +84,7 @@ class ArtistGraph:
         while queue:
             current_artist = queue.popleft()
             try:
-                results = sp.artist_related_artists(current_artist)
+                results = self.sp.artist_related_artists(current_artist)
             except Exception as e:
                 print(f"Error fetching related artists: {e}")
                 continue
