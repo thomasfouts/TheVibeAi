@@ -1,9 +1,17 @@
 import json
+import spotipy
 
 class SongManager:
-    def __init__(self, sp, artist_top_tracks_file='server/data/artisttoptracks.js'):
+    def __init__(self, artist_top_tracks_file='server/data/artisttoptracks.js', access_token = None):
         self.artist_top_tracks_file = artist_top_tracks_file
-        self.sp = sp
+
+        self.sp = None
+        if access_token:
+            # Authenticate using the user's access token
+            self.sp = spotipy.Spotify(auth=access_token)
+        else:
+            raise ValueError("Access token must be provided")
+        
         self.artist_top_tracks = {}
         self.load_artist_top_tracks()
         self.cached_artist_tracks = {}  # Cache to store artist tracks after the first call
