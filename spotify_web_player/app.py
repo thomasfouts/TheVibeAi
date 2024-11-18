@@ -1,8 +1,14 @@
 from flask import Flask, redirect, request, session, render_template, url_for
+from flask import jsonify
+
 import requests
 import base64
 import os
 import urllib.parse  # Use this for encoding URL parameters
+import requests
+
+# Spotify endpoint to get the current song
+CURRENTLY_PLAYING_URL = "https://api.spotify.com/v1/me/player/currently-playing"
 
 app = Flask(__name__)
 app.secret_key = os.urandom(16)
@@ -129,6 +135,33 @@ def refresh_token():
     response = requests.post(TOKEN_URL, data=refresh_data, headers=token_headers)
     response_data = response.json()
     session['access_token'] = response_data['access_token']
+
+@app.route('/current_song')
+def current_song():
+    # Example of the song data. This should come from the actual Spotify API request in a real scenario.
+    song_data = {
+        'item': {
+            'name': 'Time Shrinks',
+            'artists': [{'name': 'Arcy Drive'}],
+            'album': {
+                'images': [
+                    {'url': 'https://i.scdn.co/image/ab67616d0000b2733555830b1708a3e347bd3c73'}
+                ]
+            }
+        }
+    }
+
+    # Extract song details
+    song_name = song_data['item']['name']
+    artist_name = song_data['item']['artists'][0]['name']
+    album_image_url = song_data['item']['album']['images'][0]['url']
+
+    # Return the song name, artist name, and album image URL in JSON format
+    return jsonify({
+        'song_name': song_name,
+        'artist_name': artist_name,
+        'album_image_url': album_image_url
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
