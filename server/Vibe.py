@@ -1,5 +1,5 @@
 # spotify utils
-from SpotifyUtils import *
+from .SpotifyUtils import *
 
 # langchain
 from langchain import hub
@@ -13,9 +13,9 @@ from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
 
 # artist graph
-from artistgraph import ArtistGraph
-from songmanager import SongManager
-from SpotifyUtils import SpotifyUtils
+from .artistgraph import ArtistGraph
+from .songmanager import SongManager
+from .SpotifyUtils import SpotifyUtils
 
 # python
 import getpass

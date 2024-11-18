@@ -3,6 +3,13 @@ import requests
 import base64
 import os
 import urllib.parse  # Use this for encoding URL parameters
+import sys
+import os
+
+# Add the parent directory of the 'server' directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import server.Vibe
 
 app = Flask(__name__)
 app.secret_key = os.urandom(16)
@@ -23,18 +30,27 @@ TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
 SCOPE = 'user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming playlist-read-private playlist-modify-private playlist-modify-public user-library-read'
 
+# Global variable for the Vibe instance
+vibe_instance = None
+
 @app.route('/')
 def show_index():
     """Return the index page."""
     if 'access_token' not in session:
         return redirect(url_for('login'))
     
-    # Initialize the 'messages' list in the session if it doesn't exist
+    global vibe_instance
+    
+    # Initialize the global Vibe instance if it doesn't exist
+    if vibe_instance is None:
+        vibe_instance = server.Vibe.Vibe(access_token=session["access_token"])
+
+     # Initialize the 'messages' list in the session if it doesn't exist
     if 'messages' not in session:
         session['messages'] = []
     
     # Retrieve the last three messages to display
-    messages = session['messages'][-2:]
+    messages = session['messages'][-1:]
     
     return render_template('index.html', token=session['access_token'], messages=messages)
 
@@ -62,6 +78,9 @@ def user_input():
 
     session['messages'].append(message_body)
     session.modified = True
+
+    if vibe_instance:
+        vibe_instance.handle_request(message_body)
     
     return redirect(url_for('show_index'))
 
@@ -99,6 +118,8 @@ def callback():
     # Store the tokens in the session
     session['access_token'] = response_data['access_token']
     session['refresh_token'] = response_data['refresh_token']
+    # Reinitialize the Vibe instance with the new access token
+    vibe_instance = server.Vibe.Vibe(access_token=session['access_token'])
     return redirect(url_for('show_index'))
 
 
@@ -112,6 +133,7 @@ def player():
 @app.route('/logout')
 def logout():
     session.clear()  # Clear the session to remove tokens
+    vibe_instance = None  # Clear the global Vibe instance
     return redirect(url_for('login'))  # Redirect to the login page
 
 
