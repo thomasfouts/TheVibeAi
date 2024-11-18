@@ -1,13 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Web Player</title>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>TheVibeAi</title>
+      <!-- JS -->
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body onload="console.log('HTML loaded correctly.')">
+  </head>
+  <body>
+    <!-- Main page -->
+     <div class="main-page">
+      <h1 id="catchphrase">Catch a Vibe!</h1>
+
+      <!DOCTYPE html>
+
     <div id="player-container">
         <h1>Spotify Web Player</h1>
         {% if token %}
@@ -20,5 +29,27 @@
         {% endif %}
     </div>
     <script src="{{ url_for('static', filename='js/player.js') }}"></script>
-</body>
+
+    <div class="message-history">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message">
+                <img src="static/assets/circle.png" alt="circle" />
+                <div>{{ message }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-messages">No messages yet. Start the vibe!</p>
+        {% endif %}
+        <div class="input-area">
+            <form action="{{ url_for('user_input') }}" method="POST">
+                <input type="text" name="userinput" placeholder="Type your message here..." />
+                <button type="submit">Send the vibe</button>
+            </form>
+        </div>
+    </div>
+    
+
+     </div>
+  </body>
 </html>

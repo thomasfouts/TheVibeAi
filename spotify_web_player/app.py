@@ -24,10 +24,19 @@ TOKEN_URL = 'https://accounts.spotify.com/api/token'
 SCOPE = 'user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming playlist-read-private playlist-modify-private playlist-modify-public user-library-read'
 
 @app.route('/')
-def index():
+def show_index():
+    """Return the index page."""
     if 'access_token' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', token=session['access_token'])
+    
+    # Initialize the 'messages' list in the session if it doesn't exist
+    if 'messages' not in session:
+        session['messages'] = []
+    
+    # Retrieve the last three messages to display
+    messages = session['messages'][-2:]
+    
+    return render_template('index.html', token=session['access_token'], messages=messages)
 
 @app.route('/login')
 def login():
@@ -41,6 +50,20 @@ def login():
     }
     query_string = urllib.parse.urlencode(auth_query_params)
     return redirect(f"{AUTH_URL}?{query_string}")
+
+
+@app.route('/user_input', methods=['POST'])
+def user_input():
+
+    message_body = request.form['userinput']
+
+    if 'messages' not in session:
+        session['messages'] = []
+
+    session['messages'].append(message_body)
+    session.modified = True
+    
+    return redirect(url_for('show_index'))
 
 
 @app.route('/callback')
@@ -76,7 +99,7 @@ def callback():
     # Store the tokens in the session
     session['access_token'] = response_data['access_token']
     session['refresh_token'] = response_data['refresh_token']
-    return redirect(url_for('player'))
+    return redirect(url_for('show_index'))
 
 
 @app.route('/player')
