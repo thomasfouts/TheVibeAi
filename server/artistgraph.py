@@ -2,10 +2,16 @@ import json
 import networkx as nx
 from collections import deque
 import spotipy
+import math
+from scipy.spatial.distance import euclidean
+import pandas as pd
+import numpy as np
+from scipy.stats import gaussian_kde
+import os
+
 
 class ArtistGraph:
-    def __init__(self, nodes_file, edges_file, access_token=None):
-        self.user_artist_hist = {}
+    def __init__(self, nodes_file, weighted_edges_file='server/data/base_edge_weights.json', unweighted_edges_file='server/data/edges.js', access_token=None):
        
         self.sp = None
         if access_token:
@@ -14,31 +20,49 @@ class ArtistGraph:
         else:
             raise ValueError("Access token must be provided")
 
-        self.get_user_artists()
+        self.global_max_density = None
+        self.genre_coordinates = None
+        self.genre_densities = None
+        self.load_constants()
         
         self.graph = nx.Graph() 
-        self.load_graph(nodes_file, edges_file)
+        self.load_graph(nodes_file, weighted_edges_file, unweighted_edges_file)
+
+    def load_constants(self, enao_path = 'data/enao-genres-latest.csv'):
+        print('loading constants')
+        enao_df = pd.read_csv(enao_path)
+        enao_df['top'] = pd.to_numeric(enao_df['top'].str.replace('px', ''), errors='coerce')
+        enao_df['left'] = pd.to_numeric(enao_df['left'].str.replace('px', ''), errors='coerce')
+        enao_df['top'] = np.interp(enao_df['top'], (enao_df['top'].min(), enao_df['top'].max()), (100, 0))
+        enao_df['left'] = np.interp(enao_df['left'], (enao_df['left'].min(), enao_df['left'].max()), (0, 100))
+    
+        all_coords = np.vstack([enao_df['left'], enao_df['top']])
+        kde = gaussian_kde(all_coords)
         
-    def get_user_artists(self):
-        try:
-            results = self.sp.current_user_saved_tracks()
-        except:
-            return
-            
-        for item in results['items']:
-            for artist in item['track']['artists']:
-                try:
-                    if artist['uri'] not in self.user_artist_hist:
-                        self.user_artist_hist[artist['uri']] = 0
-                    self.user_artist_hist[artist['uri']] += 1
-                except:
-                    continue
+        # Precompute maximum density across all genres in enao_df for normalization
+        all_genre_densities = kde(all_coords).ravel()
+        global_max_density = np.max(all_genre_densities)
+        
+        # Precompute genre coordinates and distances
+        genre_coordinates = {
+            row['genre']: (row['left'], row['top'])
+            for _, row in enao_df.iterrows()
+        }
+        
+        genre_densities = {}
+        for genre in genre_coordinates.keys():
+            left, top = genre_coordinates[genre]
+            density = kde(np.array([[left], [top]]))[0]  # Extract the density value
+            genre_densities[genre] = density
+    
+        self.global_max_density = global_max_density
+        self.genre_coordinates = genre_coordinates
+        self.genre_densities = genre_densities
 
         
-    def load_graph(self, nodes_file, edges_file):
-        # Load nodes
-        failed_artists = []
-        artist_popularity = {}  
+    def load_graph(self, nodes_file, weighted_edges_file, unweighted_edges_file, user_data = True):
+        print('loading graph')
+        artist_data = {}
         with open(nodes_file, 'r') as f:
             for line in f:
                 try:
@@ -46,38 +70,160 @@ class ArtistGraph:
                     artist_id = artist["uri"]
                     artist_name = artist["name"]
                     popularity = artist.get("popularity", 0)  # Default to 0 if not present
-                    artist_popularity[artist_id] = popularity
-                    self.graph.add_node(artist_id, name=artist_name, popularity=popularity)
+        
+                    
+                    #artist_popularity[artist_id] = popularity
+                    genres = artist["genres"]
+                    artist_data[artist_id] = {'popularity': popularity, 'genres':genres}
+        
+                    self.graph.add_node(artist_id, name = artist_name, popularity = popularity, genres = genres)
+        
+                    # #self.graph.add_node(artist_id, name=artist_name, popularity=popularity)
                 except json.JSONDecodeError:
-                    failed_artists.append(line.strip())
+                    continue
+        
+        print('finished nodes, starting edges')
+        # Precompute the edge weights and save to a JSON file
+        if(not os.path.exists(weighted_edges_file)):
+            print('Computing base weight for edges')
+            self.get_base_edge_weights(artist_data, edges_file= unweighted_edges_file, weighted_edges_file=weighted_edges_file)
+            
+        
+        #Load weighted edges from json file
+        weight_scale = [0.8,1.5,1.2]
+        #weighted_edges_file = 'data/base_edge_weights.json'
+        with open(weighted_edges_file, 'r') as f:
+            for line in f:
+                try:
+                    edge = json.loads(line.strip(','))
+                    for artist1_id, related_artists in edge.items():
+                        if artist1_id not in artist_data:
+                            continue
+                        
+                        artist1 = artist_data[artist1_id]
+                        for artist2_id, weights in related_artists.items():
+                            try:
+                                artist2 = artist_data[artist2_id]
+                                pd_weight = weights['pd_weight']*weight_scale[0]
+                                gs_weight = weights['gs_weight']*weight_scale[1]
+                                weight = 1 + pd_weight + gs_weight
+                            except:
+                                continue
 
-        #print(f'failed to load {len(failed_artists)} artists')
+                            if(user_data): 
+                                gd_weight = self.get_genre_density(artist1, artist2)*weight_scale[2]
+                                weight += gd_weight
+    
+                            weight = max(0.0000001, weight)
+                            self.graph.add_edge(artist1_id, artist2_id, weight=weight)
+    
+                            #ALL_WEIGHTS.append(weight)
+                                
+                except json.JSONDecodeError:
+                    continue
 
-        # Load edges
-        popular_diffs = []
+    def get_base_edge_weights(self, artist_data, edges_file='server/data/edges.js', weighted_edges_file='server/data/base_edge_weights.json'):
+        base_edge_weights = {}
         with open(edges_file, 'r') as f:
             for line in f:
                 try:
                     edge = json.loads(line.strip(','))
-                    for artist_id, related_artists in edge.items():
-                        for related_artist in related_artists:
-                            if artist_id in artist_popularity and related_artist in artist_popularity:
-                                popularity_diff = artist_popularity[artist_id] - artist_popularity[related_artist]
-                                popular_diffs.append(popularity_diff)
-                                weight = 1 + abs(popularity_diff) / 100.0
-                            else:
-                                weight = 1 + abs(sum(popular_diffs) / len(popular_diffs))/100
-                                
-                            weight /= self.user_artist_hist.get(artist_id, 1)
-                            weight /= self.user_artist_hist.get(related_artist, 1)
+                    for artist1_id, related_artists in edge.items():
+                        if artist1_id not in artist_data:
+                            continue
+    
+                        base_edge_weights[artist1_id] = {}
+                        
+                        artist1 = artist_data[artist1_id]
+                        for artist2_id in related_artists:
+                            if artist2_id not in artist_data:
+                                continue
                             
-                            self.graph.add_edge(artist_id, related_artist, weight=weight)
+                            artist2 = artist_data[artist2_id]
+                            # Compute the popularity_diff_weight and genre_similarity_weight
+                            pd_weight, gs_weight = self.compute_base_edge_weight(artist1, artist2)
+    
+                            base_edge_weights[artist1_id][artist2_id] ={'pd_weight':pd_weight, 'gs_weight':gs_weight}
+                            
+        
                 except json.JSONDecodeError:
                     continue
                     
-        #print(sum(popular_diffs) / len(popular_diffs))
+        with open(weighted_edges_file, 'w') as json_file:
+            for artist_id, related_artists in base_edge_weights.items():
+                # Create a dictionary for the artist and related artists
+                line = json.dumps({artist_id: related_artists})
+                json_file.write(line + '\n')
 
-    def bfs_to_nearest_connected_artist(self, artist, sp):
+    def compute_base_edge_weight(self, artist1, artist2):
+        # Extract popularity
+        smoothed_popularity_diff = 1
+        try:
+            popularity_diff = artist1["popularity"] - artist2["popularity"]
+            smoothed_popularity_diff = 1 / (1 + math.exp(-popularity_diff)) #sigmoid
+        except:
+            pass
+    
+        # Calculate genre similarity
+        x1, y1, x2, y2 = None, None, None, None
+        artist1_coords = []
+        for genre in artist1["genres"]:
+            try:
+                artist1_coords.append(self.genre_coordinates[genre])
+            except:
+                continue
+        if(len(artist1_coords) > 0):
+            x1 = sum([x[0] for x in artist1_coords])/len(artist1_coords)
+            y1 = sum([x[1] for x in artist1_coords])/len(artist1_coords)
+        
+        artist2_coords = []
+        for genre in artist2["genres"]:
+            try:
+                artist2_coords.append(self.genre_coordinates[genre])
+            except:
+                continue
+        if(len(artist2_coords)>0):
+            x2 = sum([x[0] for x in artist2_coords])/len(artist2_coords)
+            y2 = sum([x[1] for x in artist2_coords])/len(artist2_coords)
+    
+        genre_similarity_weight = 1
+        if(x1 and x2):
+            distance = euclidean((x1,y1), (x2,y2))
+            genre_similarity_weight = distance / 100
+    
+        return smoothed_popularity_diff, genre_similarity_weight
+
+    # Function to calculate the edge weight between two artists
+    def calculate_artist_density(self, artist_genres): # , enao_df, kde, favorite_genres=None):
+        # Initialize a list to store density values for each genre
+        densities = []
+        for genre in artist_genres:
+            if(genre in self.genre_densities):
+                densities.append(self.genre_densities[genre])
+        if(densities):
+            #normalized_densities = [density / global_max_density for density in densities]
+            probability = np.mean(densities)/self.global_max_density
+        else:
+            probability = 0
+        #probability = 1 / (1 + np.exp(-1 * (probability - 0.5)))
+        # Linear scaling to expand the range of probability weights
+    
+        probability = 0.5 + 0.5 * (probability - 0.5)  # Scale to get a wider range
+        return probability
+        
+    def get_genre_density(self, artist1, artist2):
+        artist1_probability, artist2_probability = 0, 0
+        # Calculate artist probability based on user's listening history
+        if(len(artist1['genres']) > 0):
+            artist1_probability = self.calculate_artist_density(artist1["genres"])
+        if(len(artist2['genres']) > 0):
+            artist2_probability = self.calculate_artist_density(artist2["genres"])
+        
+        average_probability = (artist1_probability + artist2_probability)/1.5
+        return max(0, 1 - (average_probability))  # Scale to adjust the weight
+        #return max(probability_weight, 0.000001)
+
+    def bfs_to_nearest_connected_artist(self, artist):
         visited = set()
         queue = deque([artist])
         
@@ -109,7 +255,7 @@ class ArtistGraph:
 
 
     def update_nodes_file_bulk(self, artists):
-        with open('data/nodes.js', 'a') as f:
+        with open('server/data/nodes.js', 'a') as f:
             for artist in artists:
                 new_node = {
                     "genres": artist.get("genres", []),
@@ -129,7 +275,7 @@ class ArtistGraph:
         # Load existing edges from file
         edges = {}
         try:
-            with open('data/edges.js', 'r') as f:
+            with open('server/data/edges.js', 'r') as f:
                 for line in f:
                     line = line.strip(',\n')
                     if line:
@@ -145,7 +291,7 @@ class ArtistGraph:
             edges[current_artist] = related_artist_ids
 
         # Write updated edges back to the file
-        with open('data/edges.js', 'w') as f:
+        with open('server/data/edges.js', 'w') as f:
             for artist_id, related_artists in edges.items():
                 f.write(json.dumps({artist_id: related_artists}) + ',\n')
 

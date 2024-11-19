@@ -12,9 +12,10 @@ class SongManager:
         else:
             raise ValueError("Access token must be provided")
         
-        self.artist_top_tracks = {}
-        self.load_artist_top_tracks()
+        #self.artist_top_tracks = {}
         self.cached_artist_tracks = {}  # Cache to store artist tracks after the first call
+        self.load_artist_top_tracks()
+        
 
     def load_artist_top_tracks(self):
         # Load top tracks from the artist_top_tracks_file
@@ -24,7 +25,7 @@ class SongManager:
                     line = line.strip(',\n')
                     if line:
                         artist_tracks = json.loads(line)
-                        self.artist_top_tracks.update(artist_tracks)
+                        self.cached_artist_tracks.update(artist_tracks)
         except FileNotFoundError:
             print("artist_top_tracks_file not found, starting with an empty dictionary.")
 
@@ -32,16 +33,11 @@ class SongManager:
         if artist_id in self.cached_artist_tracks:
             return self.cached_artist_tracks[artist_id]
         
-        # Check if artist_id is in the artist_top_tracks dictionary
-        if artist_id in self.artist_top_tracks:
-            self.cached_artist_tracks[artist_id] = self.artist_top_tracks[artist_id]
-            return self.artist_top_tracks[artist_id]
-        
         try:
             results = self.sp.artist_top_tracks(artist_id)
             track_ids = [track['id'] for track in results['tracks']]
             self.update_artist_top_tracks_file(artist_id, track_ids)
-            self.cached_artist_tracks[artist_id] = track_ids
+            #self.cached_artist_tracks[artist_id] = track_ids
             return track_ids
         except Exception as e:
             print(f"Error fetching top tracks for artist {artist_id}: {e}")
@@ -49,7 +45,7 @@ class SongManager:
 
     def update_artist_top_tracks_file(self, artist_id, track_ids):
         # Update the artist_top_tracks_file with new track IDs
-        self.artist_top_tracks[artist_id] = track_ids
+        self.cached_artist_tracks[artist_id] = track_ids
         with open(self.artist_top_tracks_file, 'a') as f:
             f.write(json.dumps({artist_id: track_ids}) + ',\n')
     
@@ -81,12 +77,11 @@ class SongManager:
 
     def select_best_tracks(self, artist_ids, current_song=None):
         track_lists = []
-
         for artist_id in artist_ids:
             track_ids = self.get_artist_top_tracks(artist_id)
             if not track_ids:
                 continue
-
+            
             audio_features = self.get_audio_features(track_ids)
             track_vectors = [
                 [
@@ -152,4 +147,8 @@ class SongManager:
     def get_path_of_songs(self, artist_path, current_song=None):
         # Given a list of artist UIDs, generate a path of songs
         artist_ids = artist_path 
+        song_path = self.select_best_tracks(artist_ids, current_song)
+        if(current_song):
+            return song_path[1:]
+        return song_path
         return self.select_best_tracks(artist_ids, current_song)
