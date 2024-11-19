@@ -5,97 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>TheVibeAi</title>
-      <!-- JS -->
+    <!-- Spotify SDK -->
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   </head>
   <body>
     <!-- Main page -->
-     <div class="main-page">
+    <div class="main-page">
       <h1 id="catchphrase">Catch a Vibe!</h1>
 
-<div id="player-container">
-    <h1>Spotify Web Player</h1>
-    {% if token %}
+      <div id="player-container">
+        <h1>Spotify Web Player</h1>
+        {% if token %}
         <div id="player-controls">
-            
-            <div id="song-info" class="song-container">
-                <img id="album-image" class="album-image" src="" alt="Album Image" />
-                <div class="song-info-text">
-                    <p id="song-name">Loading song...</p>
-                    <p id="artist-name">Loading artist...</p>
-                </div>
+          <div id="song-info" class="song-container">
+            <img id="album-image" class="album-image" src="" alt="Album Image" />
+            <div class="song-info-text">
+              <p id="song-name">Loading song...</p>
+              <p id="artist-name">Loading artist...</p>
             </div>
-            <div id="play-button" onclick="togglePlay()">►</div>
+          </div>
+          <div id="play-button" onclick="togglePlay()">►</div>
         </div>
         <input type="hidden" id="spotify-token" value="{{ token }}">
         <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
         <p id="status-message">Initializing Spotify Player...</p>
-    {% else %}
+        {% else %}
         <a href="{{ url_for('login') }}" class="login-button">Login to Spotify</a>
-    {% endif %}
-</div>
+        {% endif %}
+      </div>
 
-    <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+      <script src="{{ url_for('static', filename='js/player.js') }}"></script>
 
-    <div class="input-area">
+      <div class="input-area">
         <form id="userInputForm" action="{{ url_for('user_input') }}" method="POST">
-            <input type="text" id="userInputField" name="userinput" placeholder="Type your message here..." />
-            <button type="submit">Send the vibe</button>
+          <input type="text" id="userInputField" name="userinput" placeholder="Type your message here..." />
+          <button type="submit">Send the vibe</button>
         </form>
         <div id="loadingIndicator" style="display: none;">Loading...</div>
-    </div>
-    <div class="message-display">
+      </div>
+
+      <div class="message-display">
         <div id="current-message" class="message">
-            <img src="static/assets/circle.png" alt="circle" />
-            <div id="message-content">No message yet. Start the vibe!</div>
+          <img src="static/assets/circle.png" alt="circle" />
+          <div id="message-content">No message yet. Start the vibe!</div>
         </div>
+      </div>
     </div>
 
+    <!-- JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-    $('#userInputForm').on('submit', function (e) {
-        e.preventDefault(); // Prevent default form submission (no page reload)
-
-        const userInputField = $(this).find('input[name="userinput"]');
-        const userInput = userInputField.val();
-
-        // Clear input field, hide form, and show loading indicator
-        userInputField.val('');
-        $('#userInputForm').hide(); // Hide the form
-        $('#loadingIndicator').show(); // Show loading indicator
-
+    <script>
+      // Fetch the current song from the backend
+      function fetchCurrentSong() {
         $.ajax({
+            url: '{{ url_for("current_song") }}',
+            type: 'GET',
+            success: function (response) {
+            if (!response.error) {
+                $('#song-name').text(response.song_name);
+                $('#artist-name').text(response.artist_name);
+                $('#album-image').attr('src', response.album_image_url);
+            } else {
+                console.error(response.error);
+                $('#song-name').text('No song currently playing');
+                $('#artist-name').text('');
+                $('#album-image').attr('src', '');
+            }
+            },
+            error: function () {
+            console.error('Failed to fetch current song');
+            }
+  });
+}
+
+// Update song details every 3 seconds
+setInterval(fetchCurrentSong, 3000);
+
+// Initial fetch
+fetchCurrentSong();
+
+      // Handle user input submission
+      $(document).ready(function () {
+        $('#userInputForm').on('submit', function (e) {
+          e.preventDefault(); // Prevent default form submission (no page reload)
+
+          const userInputField = $(this).find('input[name="userinput"]');
+          const userInput = userInputField.val();
+
+          // Clear input field, hide form, and show loading indicator
+          userInputField.val('');
+          $('#userInputForm').hide(); // Hide the form
+          $('#loadingIndicator').show(); // Show loading indicator
+
+          $.ajax({
             url: '{{ url_for("user_input") }}', // Flask route for processing the form
             type: 'POST',
             data: { userinput: userInput },
             success: function (response) {
-                if (response.success) {
-                    // Update the current message display
-                    $('#message-content').text(response.new_message);
-                } else {
-                    console.error('Error processing input');
-                }
+              if (response.success) {
+                // Update the current message display
+                $('#message-content').text(response.new_message);
+              } else {
+                console.error('Error processing input');
+              }
             },
             error: function () {
-                console.error('AJAX request failed');
+              console.error('AJAX request failed');
             },
             complete: function () {
-                // Hide loading indicator and show the form again
-                $('#loadingIndicator').hide();
-                $('#userInputForm').show();
+              // Hide loading indicator and show the form again
+              $('#loadingIndicator').hide();
+              $('#userInputForm').show();
             }
+          });
         });
-    });
-});
-
-</script>
-    
-
+      });
+    </script>
   </body>
 </html>

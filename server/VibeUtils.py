@@ -8,7 +8,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.runnables import RunnablePassthrough
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
+from dotenv import load_dotenv
 
+# Load environment variables from the .env file
+load_dotenv()
 # Setup OpenAI API keys
 def setup_openai_api():
     if not os.environ.get("OPENAI_API_KEY"):

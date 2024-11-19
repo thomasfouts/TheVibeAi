@@ -6,6 +6,8 @@ import os
 import urllib.parse  # Use this for encoding URL parameters
 import sys
 import requests
+import threading
+import time
 
 # Add the parent directory of the 'server' directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -35,6 +37,45 @@ SCOPE = 'user-read-playback-state user-modify-playback-state user-read-currently
 
 # Global variable for the Vibe instance
 vibe_instance = None
+global_access_token = None
+global_current_song = None
+
+# Function to update session data with current song details
+def update_current_song():
+    """Background task to fetch current song every 3 seconds."""
+    global global_access_token, global_current_song
+
+    while True:
+        if global_access_token:
+            headers = {'Authorization': f"Bearer {global_access_token}"}
+            response = requests.get(CURRENTLY_PLAYING_URL, headers=headers)
+
+            if response.status_code == 200:
+                try:
+                    song_data = response.json()
+                    global_current_song = {
+                        'song_name': song_data['item']['name'],
+                        'artist_name': song_data['item']['artists'][0]['name'],
+                        'album_image_url': song_data['item']['album']['images'][0]['url']
+                    }
+                except Exception as e:
+                    print("Error parsing Spotify response:", e)
+            elif response.status_code == 204:
+                global_current_song = None  # No song playing
+            elif response.status_code == 401:
+                print("Token expired, refreshing...")
+                global_access_token = refresh_token(session.get('refresh_token'))
+            else:
+                print("Spotify API error:", response.status_code, response.text)
+        time.sleep(3)
+
+# Start a thread for the background task
+def start_background_task():
+    thread = threading.Thread(target=update_current_song, daemon=True)
+    thread.start()
+
+# Initialize background task at app startup
+start_background_task()
 
 @app.route('/')
 def show_index():
@@ -43,7 +84,8 @@ def show_index():
         return redirect(url_for('login'))
     
     global vibe_instance
-    
+    global global_access_token
+    global_access_token = session['access_token']
     # Initialize the global Vibe instance if it doesn't exist
     if vibe_instance is None:
         vibe_instance = server.Vibe.Vibe(access_token=session["access_token"])
@@ -164,6 +206,8 @@ def refresh_token():
 
 @app.route('/current_song')
 def current_song():
+    if global_current_song:
+        return jsonify(global_current_song)
     # Example of the song data. This should come from the actual Spotify API request in a real scenario.
     song_data = {
         'item': {
@@ -188,6 +232,8 @@ def current_song():
         'artist_name': artist_name,
         'album_image_url': album_image_url
     })
+
+threading.Thread(target=update_current_song, daemon=True).start()
 
 if __name__ == '__main__':
     app.run(debug=True)
