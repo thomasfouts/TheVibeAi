@@ -57,6 +57,11 @@ def show_index():
     
     return render_template('index.html', token=session['access_token'], messages=messages)
 
+@app.after_request
+def apply_cookie_settings(response):
+    response.headers["Set-Cookie"] = "session=your_session_data; SameSite=None; Secure"
+    return response
+
 @app.route('/login')
 def login():
     # Redirect to Spotify's authentication page
