@@ -84,8 +84,10 @@ def user_input():
     if vibe_instance:
         vibe_instance.handle_request(message_body)
 
-    # Return a JSON response indicating success
-    return jsonify({"success": True, "message": "Input processed successfully", "new_message": message_body})
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True, "message": "Input processed successfully", "new_message": message_body})
+    else:
+        return redirect(url_for('show_index'))
 
 
 @app.route('/callback')
