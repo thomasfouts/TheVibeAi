@@ -67,6 +67,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
         if (success) {
             console.log('The Web Playback SDK successfully connected to Spotify!');
             document.getElementById("status-message").innerText = 'Player connected to Spotify. Select it as the active device.';
+            fetchCurrentSong();  // Fetch the current song when the player is connected
         } else {
             console.error('Failed to connect to Spotify.');
             document.getElementById("status-message").innerText = 'Failed to connect to Spotify.';
@@ -74,6 +75,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     });
 };
 
+// Function to set the active device
 function setActiveDevice(token, device_id) {
     console.log('Activating device with Device ID:', device_id);
     fetch('https://api.spotify.com/v1/me/player', {
@@ -102,9 +104,13 @@ function setActiveDevice(token, device_id) {
         document.getElementById("status-message").innerText = 'Error activating device. See console for details.';
     });
 }
+// Variable to track the play/pause state
+let isPlaying = false;
 
-
+// Function to toggle play/pause
 function togglePlay() {
+    const playButton = document.getElementById('play-button');
+    
     player.getCurrentState().then(state => {
         if (!state) {
             console.error('User is not connected to the player.');
@@ -112,10 +118,13 @@ function togglePlay() {
             return;
         }
 
+        // If the playback is paused, resume it; if it’s playing, pause it.
         if (state.paused) {
             player.resume().then(() => {
                 console.log('Playback resumed');
                 document.getElementById("status-message").innerText = 'Playback resumed.';
+                playButton.textContent = '❚❚';  // Change to pause symbol
+                isPlaying = true;
             }).catch(error => {
                 console.error('Failed to resume playback:', error);
                 document.getElementById("status-message").innerText = 'Failed to resume playback. See console.';
@@ -124,6 +133,8 @@ function togglePlay() {
             player.pause().then(() => {
                 console.log('Playback paused');
                 document.getElementById("status-message").innerText = 'Playback paused.';
+                playButton.textContent = '►';  // Change to play symbol
+                isPlaying = false;
             }).catch(error => {
                 console.error('Failed to pause playback:', error);
                 document.getElementById("status-message").innerText = 'Failed to pause playback. See console.';
@@ -131,3 +142,25 @@ function togglePlay() {
         }
     });
 }
+
+// Function to fetch current song data from the backend
+function fetchCurrentSong() {
+    fetch('/current_song')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fetched current song data:', data);  // Log the data for debugging
+            
+            // Check if the song and artist information is present
+            const songName = data.song_name || "No song playing";
+            const artistName = data.artist_name || "Unknown artist";
+            
+            // Update the UI with song and artist name
+            document.getElementById('song-name').textContent = songName;
+            document.getElementById('artist-name').textContent = artistName;
+            document.getElementById('album-image').src = data.album_image_url;
+        })
+        .catch(error => console.error('Error fetching current song:', error));
+}
+
+// Set an interval to periodically update the current song
+setInterval(fetchCurrentSong, 10000);  // Fetch every 10 seconds

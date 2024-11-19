@@ -45,7 +45,7 @@ class SpotifyUtils:
         self.user_id = self.get_user_id()
 
         # Create playlist using the user's actual ID
-        self.create_playlist()
+        #self.create_playlist()
 
     def get_user_id(self):
         """Gets the current user's Spotify ID."""
@@ -87,6 +87,33 @@ class SpotifyUtils:
             self.sp.playlist_add_items(self.playlist_id, uri_list)
         except Exception as e:
             print(f"Error adding songs to playlist: {e}")
+    
+    def make_playlist(self, track_ids, playlist_name, playlist_description):
+        try:
+            # Get the current user's ID
+            user_id = self.sp.current_user()['id']
+            
+            # Create a new playlist
+            playlist = self.sp.user_playlist_create(
+                user=user_id,
+                name=playlist_name,
+                description=playlist_description,
+                public=True  # You can set this to False if you want a private playlist
+            )
+            
+            # Add tracks to the playlist
+            self.sp.playlist_add_items(playlist_id=playlist['id'], items=track_ids)
+            #print(f"Playlist '{playlist_name}' created successfully!")
+
+            # Start playing the newly created playlist
+            self.sp.start_playback(context_uri=playlist['uri'])
+
+            #print(f"Playing '{playlist_name}' on your Spotify account!")
+
+            return playlist['id']  # Return the ID of the created playlist
+        except Exception as e:
+            print(f"Error creating or playing playlist: {e}")
+            return None
 
     def print_playlist(self):
         """Print songs in the playlist."""

@@ -9,6 +9,9 @@
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lora:wght@700&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
   </head>
   <body>
     <!-- Main page -->
@@ -16,18 +19,28 @@
       <h1 id="catchphrase">Catch a Vibe!</h1>
 
       <!DOCTYPE html>
+<div id="player-container">
+    <h1>Spotify Web Player</h1>
+    {% if token %}
+        <div id="player-controls">
+            
+            <div id="song-info" class="song-container">
+                <img id="album-image" class="album-image" src="" alt="Album Image" />
+                <div class="song-info-text">
+                    <p id="song-name">Loading song...</p>
+                    <p id="artist-name">Loading artist...</p>
+                </div>
+            </div>
+            <div id="play-button" onclick="togglePlay()">►</div>
+        </div>
+        <input type="hidden" id="spotify-token" value="{{ token }}">
+        <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+        <p id="status-message">Initializing Spotify Player...</p>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="login-button">Login to Spotify</a>
+    {% endif %}
+</div>
 
-    <div id="player-container">
-        <h1>Spotify Web Player</h1>
-        {% if token %}
-            <div id="play-button" onclick="togglePlay()">Play / Pause</div>
-            <input type="hidden" id="spotify-token" value="{{ token }}">
-            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
-            <p id="status-message">Initializing Spotify Player...</p>
-        {% else %}
-            <a href="{{ url_for('login') }}" class="login-button">Login to Spotify</a>
-        {% endif %}
-    </div>
     <script src="{{ url_for('static', filename='js/player.js') }}"></script>
 
     <div class="message-history">
