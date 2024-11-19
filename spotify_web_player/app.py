@@ -31,7 +31,7 @@ TOKEN_URL = 'https://accounts.spotify.com/api/token'
 # SCOPE = 'user-read-playback-state user-modify-playback-state user-library-read user-read-currently-playing'
 # SCOPE = 'user-read-playback-state user-modify-playback-state user-library-read user-read-currently-playing streaming playlist-read-private playlist-modify-private'
 
-SCOPE = 'user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming playlist-read-private playlist-modify-private playlist-modify-public user-library-read'
+SCOPE = 'user-read-playback-state user-modify-playback-state user-read-currently-playing app-remote-control streaming playlist-read-private playlist-modify-private playlist-modify-public user-library-read user-read-recently-played'
 
 # Global variable for the Vibe instance
 vibe_instance = None
