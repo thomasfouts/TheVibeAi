@@ -28,8 +28,9 @@
               <p id="song-name">Loading song...</p>
               <p id="artist-name">Loading artist...</p>
             </div>
+            <div id="play-button" onclick="togglePlay()">►</div>
           </div>
-          <div id="play-button" onclick="togglePlay()">►</div>
+          
           <div class="control-buttons-container">
             <button id="next-button" class="styled-button">⏭ Next Track</button>
             <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
