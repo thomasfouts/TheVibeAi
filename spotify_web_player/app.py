@@ -73,7 +73,6 @@ def login():
 
 @app.route('/user_input', methods=['POST'])
 def user_input():
-
     message_body = request.form['userinput']
 
     if 'messages' not in session:
@@ -84,8 +83,9 @@ def user_input():
 
     if vibe_instance:
         vibe_instance.handle_request(message_body)
-    
-    return redirect(url_for('show_index'))
+
+    # Return a JSON response indicating success
+    return jsonify({"success": True, "message": "Input processed successfully", "new_message": message_body})
 
 
 @app.route('/callback')

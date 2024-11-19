@@ -40,13 +40,40 @@
             <div>{{ message }}</div>
           </div>
           {% endfor %}
-          <div class = "input-area">
-          <form action="{{ url_for('user_input') }}" method="POST">
-            <input type="text" name="userinput" placeholder="Type your message here..." />
-        
-            <button type="submit">Send the vibe</button>
-          </form>
-          </div>
+          <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+      <script>
+          $(document).ready(function () {
+              $('#userInputForm').on('submit', function (e) {
+                  e.preventDefault(); // Prevent default form submission
+                  
+                  const userInput = $(this).find('input[name="userinput"]').val();
+
+                  $.ajax({
+                      url: '{{ url_for("user_input") }}',
+                      type: 'POST',
+                      data: { userinput: userInput },
+                      success: function (response) {
+                          if (response.success) {
+                              // Dynamically add the new message to the message history
+                              $('.message-history').append(`
+                                  <div class="message">
+                                      <img src="static/assets/circle.png" alt="circle" />
+                                      <div>${response.new_message}</div>
+                                  </div>
+                              `);
+                              // Clear the input field
+                              $('#userInputForm input[name="userinput"]').val('');
+                          } else {
+                              console.error('Error processing input');
+                          }
+                      },
+                      error: function () {
+                          console.error('AJAX request failed');
+                      }
+                  });
+              });
+          });
+</script>
       </div>
 
 
