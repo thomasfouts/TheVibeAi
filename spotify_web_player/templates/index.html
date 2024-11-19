@@ -30,9 +30,12 @@
             </div>
           </div>
           <div id="play-button" onclick="togglePlay()">►</div>
+          <div class="control-buttons-container">
+            <button id="next-button" class="styled-button">⏭ Next Track</button>
+            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+          </div>
         </div>
         <input type="hidden" id="spotify-token" value="{{ token }}">
-        <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
         <p id="status-message">Initializing Spotify Player...</p>
         {% else %}
         <a href="{{ url_for('login') }}" class="login-button">Login to Spotify</a>
@@ -60,37 +63,59 @@
     <!-- JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-      // Fetch the current song from the backend
-      function fetchCurrentSong() {
-        $.ajax({
-            url: '{{ url_for("current_song") }}',
-            type: 'GET',
-            success: function (response) {
-            if (!response.error) {
-                $('#song-name').text(response.song_name);
-                $('#artist-name').text(response.artist_name);
-                $('#album-image').attr('src', response.album_image_url);
-            } else {
-                console.error(response.error);
-                $('#song-name').text('No song currently playing');
-                $('#artist-name').text('');
-                $('#album-image').attr('src', '');
-            }
-            },
-            error: function () {
-            console.error('Failed to fetch current song');
-            }
-  });
-}
-
-// Update song details every 3 seconds
-setInterval(fetchCurrentSong, 3000);
-
-// Initial fetch
-fetchCurrentSong();
-
-      // Handle user input submission
       $(document).ready(function () {
+        const token = $('#spotify-token').val();
+
+        // Function to skip to the next track
+        function skipToNext() {
+          $.ajax({
+            url: 'https://api.spotify.com/v1/me/player/next',
+            type: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            success: function () {
+              console.log('Skipped to the next track');
+            },
+            error: function (xhr) {
+              console.error('Failed to skip track:', xhr.responseText);
+            }
+          });
+        }
+
+        // Fetch the current song from the backend
+        function fetchCurrentSong() {
+          $.ajax({
+              url: '{{ url_for("current_song") }}',
+              type: 'GET',
+              success: function (response) {
+              if (!response.error) {
+                  $('#song-name').text(response.song_name);
+                  $('#artist-name').text(response.artist_name);
+                  $('#album-image').attr('src', response.album_image_url);
+              } else {
+                  console.error(response.error);
+                  $('#song-name').text('No song currently playing');
+                  $('#artist-name').text('');
+                  $('#album-image').attr('src', '');
+              }
+              },
+              error: function () {
+              console.error('Failed to fetch current song');
+              }
+          });
+        }
+
+        // Update song details every 3 seconds
+        setInterval(fetchCurrentSong, 3000);
+
+        // Initial fetch
+        fetchCurrentSong();
+
+        // Attach event listener to the "Next" button
+        $('#next-button').on('click', skipToNext);
+
+        // Handle user input submission
         $('#userInputForm').on('submit', function (e) {
           e.preventDefault(); // Prevent default form submission (no page reload)
 
