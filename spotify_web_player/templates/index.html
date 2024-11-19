@@ -44,9 +44,10 @@
 
     <div class="input-area">
         <form id="userInputForm" action="{{ url_for('user_input') }}" method="POST">
-            <input type="text" name="userinput" placeholder="Type your message here..." />
+            <input type="text" id="userInputField" name="userinput" placeholder="Type your message here..." />
             <button type="submit">Send the vibe</button>
         </form>
+        <div id="loadingIndicator" style="display: none;">Loading...</div>
     </div>
     <div class="message-display">
         <div id="current-message" class="message">
@@ -61,7 +62,13 @@
     $('#userInputForm').on('submit', function (e) {
         e.preventDefault(); // Prevent default form submission (no page reload)
 
-        const userInput = $(this).find('input[name="userinput"]').val();
+        const userInputField = $(this).find('input[name="userinput"]');
+        const userInput = userInputField.val();
+
+        // Clear input field, hide form, and show loading indicator
+        userInputField.val('');
+        $('#userInputForm').hide(); // Hide the form
+        $('#loadingIndicator').show(); // Show loading indicator
 
         $.ajax({
             url: '{{ url_for("user_input") }}', // Flask route for processing the form
@@ -77,10 +84,16 @@
             },
             error: function () {
                 console.error('AJAX request failed');
+            },
+            complete: function () {
+                // Hide loading indicator and show the form again
+                $('#loadingIndicator').hide();
+                $('#userInputForm').show();
             }
         });
     });
 });
+
 </script>
     
 

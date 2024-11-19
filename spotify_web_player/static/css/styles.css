@@ -261,3 +261,9 @@ h1 {
     content: ", ";
     margin-right: 5px;
 }
+
+#loadingIndicator {
+    font-size: 1.2em;
+    color: #555;
+    margin-top: 10px;
+}
