@@ -28,6 +28,7 @@ class ArtistGraph:
         self.global_max_density = None
         self.genre_coordinates = None
         self.genre_densities = None
+        self.use_user_data = True
         self.load_constants()
         
         self.graph = nx.Graph() 
@@ -221,42 +222,67 @@ class ArtistGraph:
     def get_genre_density(self, artist1, artist2):
         artist1_probability, artist2_probability = 0, 0
         # Calculate artist probability based on user's listening history
-        if(len(artist1['genres']) > 0):
+        if(len(artist1.get('genres',[])) > 0):
             artist1_probability = self.calculate_artist_density(artist1["genres"])
-        if(len(artist2['genres']) > 0):
+        if(len(artist2.get('genres',[])) > 0):
             artist2_probability = self.calculate_artist_density(artist2["genres"])
         
         average_probability = (artist1_probability + artist2_probability)/1.5
         return max(0, 1 - (average_probability))  # Scale to adjust the weight
         #return max(probability_weight, 0.000001)
 
-    def bfs_to_nearest_connected_artist(self, artist):
+    def add_new_edge(self, artist1, artist2, weight_scale = [0.8,1.5,1.2]):
+        pd_weight, gs_weight = self.compute_base_edge_weight(artist1, artist2)
+        weight = 1 + pd_weight*weight_scale[0] + gs_weight*weight_scale[1]
+
+        if(self.use_user_data):
+            gd_weight = self.get_genre_density(artist1, artist2)*weight_scale[2]
+            weight += gd_weight
+        
+        artist1_id = artist1['uri']
+        artist2_id = artist2['uri']
+        weight = max(0.0000001, weight)
+        self.graph.add_edge(artist1_id, artist2_id, weight=weight)
+
+
+    def bfs_to_nearest_connected_artist(self, artist_name):
+        print('BFS for artist: ', artist_name)
+        try:
+            search_results = self.sp.search(q=artist_name, type ='artist', limit=1)
+            artist = search_results['artists']['items'][0]
+        except Exception as e:
+            print(f"Error from spotify fetching artist: {e}")
+            return None
+        
+        artist_id = artist['uri']
         visited = set()
         queue = deque([artist])
         
         while queue:
             current_artist = queue.popleft()
+            current_artist_id = current_artist['uri']
             try:
-                results = self.sp.artist_related_artists(current_artist)
+                results = self.sp.artist_related_artists(current_artist_id)
             except Exception as e:
                 print(f"Error fetching related artists: {e}")
                 continue
             
-            related_artist_ids = [related_artist['uri'] for related_artist in results['artists']]
+            #related_artist_ids = [related_artist['uri'] for related_artist in results['artists']]
             for related_artist in results['artists']:
                 related_artist_id = related_artist['uri']
                 if related_artist_id in self.graph:
-                    # Found a connected artist
-                    return related_artist_id
+                    self.add_new_edge(current_artist, related_artist)
+                    return artist_id
                 if related_artist_id not in visited:
                     visited.add(related_artist_id)
                     queue.append(related_artist_id)
                     # Add this artist to the graph
-                    self.graph.add_node(related_artist_id, name=related_artist['name'], popularity=related_artist.get('popularity', 0))
+                    self.graph.add_node(related_artist_id, name=related_artist['name'], popularity=related_artist.get('popularity', 0), genres=related_artist.get('genres', []))
+                    self.add_new_edge(current_artist, related_artist)
             
             # Update nodes.js and edges.js
-            self.update_nodes_file_bulk(results['artists'])
-            self.update_edges_file_bulk(current_artist, related_artist_ids)
+            # self.update_nodes_file_bulk(results['artists'])
+            # self.update_edges_file_bulk(current_artist, related_artist_ids)
                     
         return None
 
