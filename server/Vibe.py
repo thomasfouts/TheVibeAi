@@ -87,7 +87,7 @@ class Vibe:
         # If the llm does not return a valid option, try again
         return self.handle_request(request)
     
-    def generate_playlist(self, request: str):
+    def get_songs_for_vibe(self, request: str):
         # Configure chain
         rag_chain = (
             {"context": retriever | format_docs, "question": RunnablePassthrough()}
@@ -121,20 +121,28 @@ class Vibe:
             # If the LLM-generated code fails to run, retry
             print(f"An error occurred in the generated code, retrying: {e}")
             print("--------------------")
-            return self.generate_playlist(request)
+            return
+        return result
 
-        # If no results are found, try again
-        if not result:
-            return self.generate_playlist(request)
 
+
+    def generate_playlist(self, request: str):
+        num_requests = 0
+        result = []
+        while len(result) == 0 and num_requests < 5:
+            result = self.get_songs_for_vibe(request)
+            num_requests += 1
+        
+        if len(result) == 0:
+            print("No songs found, please try again.")
+            return
+        
         # Add songs to playlist
         print('Adding songs to playlist')
         playlist_name = "Vibe AI Playlist"
         playlist_description = "Automatically generated with AI"
         self.utils.make_playlist(result, playlist_name, playlist_description)
-
-        #print(result)
-        #self.utils.add_songs(result)
+        print("Playlist created successfully.")
 
         
     def pick_next_artist(self, user_prompt):
@@ -229,8 +237,21 @@ class Vibe:
         try:
             for song in song_path:
                 self.sp.add_to_queue(song)
-            print("Songs successfully added to the queue.")
+            print("Songs successfully songmanager songs to the queue.")
+            print("Song path:", song_path)
         except Exception as e:
             print(f"Error adding songs to the queue: {e}")
+
+        try:
+            next_songs = self.get_songs_for_vibe(user_prompt)
+            for song in next_songs:
+                if(song not in song_path):
+                    self.sp.add_to_queue(song)
+
+            print("Songs successfully added to the queue.")
+            print("Next songs:", next_songs)
+                    
+        except Exception as e:
+            print(f"Error fetching songs for after the queue: {e}")
 
         
