@@ -42,7 +42,7 @@ global_current_song = None
 
 # Function to update session data with current song details
 def update_current_song():
-    """Background task to fetch current song every 3 seconds."""
+    """Background task to fetch current song every .7 seconds."""
     global global_access_token, global_current_song
 
     while True:
@@ -67,7 +67,7 @@ def update_current_song():
                 global_access_token = refresh_token(session.get('refresh_token'))
             else:
                 print("Spotify API error:", response.status_code, response.text)
-        time.sleep(3)
+        time.sleep(.7)
 
 # Start a thread for the background task
 def start_background_task():
